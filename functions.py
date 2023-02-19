@@ -1,3 +1,5 @@
+# Functions
+
 import csv
 import requests
 from bs4 import BeautifulSoup
@@ -20,10 +22,8 @@ class ScraperThread(QThread):
                 self.error.emit("Error: Invalid URL")
                 return
 
-            html = response.text
-            if self.selector is not None:
-                soup = BeautifulSoup(html, 'html.parser')
-                html = str(soup.select_one(self.selector))
+            soup = BeautifulSoup(response.text, 'html.parser')
+            html = str(soup.select_one(self.selector))
 
             self.success.emit(html)
         except Exception as e:

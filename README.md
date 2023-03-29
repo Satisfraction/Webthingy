@@ -1,14 +1,35 @@
-Webthingy ist ein einfaches GUI-Tool zum Scrapen von Webinhalten. Es kann verwendet werden, um den HTML-Code einer Website abzurufen oder den Text von Elementen auf der Website basierend auf einem CSS-Selektor auszuwählen und anzuzeigen. Mit Webthingy können Sie auch die gescrapten Inhalte in einer CSV-Datei speichern.
+# Webthingy
 
-So verwenden Sie Webthingy:
+Webthingy is a desktop application built with PyQt5 and BeautifulSoup libraries for scraping website data. The user can enter a website URL and select an HTML tag to scrape data from. The scraped data is displayed in the output textbox and can be saved to a CSV or PDF file.
 
-Geben Sie die URL der Website ein, von der Sie Inhalte scrapen möchten.
-Optional können Sie einen CSS-Selektor angeben, um einen bestimmten Teil der Website auszuwählen.
-Klicken Sie auf "Run", um den Scraper auszuführen. Die gescrapten Inhalte werden im Output-Bereich angezeigt.
-Sie können die gescrapten Inhalte in einer CSV-Datei speichern, indem Sie auf "Save" klicken.
-Klicken Sie auf "Quit", um das Programm zu beenden.
-Zusätzliche Informationen:
+To use the application, follow these steps:
 
-Sie müssen möglicherweise zusätzliche Abhängigkeiten wie PyQt5 und BeautifulSoup4 installieren, um das Programm ausführen zu können.
-Stellen Sie sicher, dass Sie berechtigt sind, die Inhalte der Website zu scrapen, bevor Sie Webthingy verwenden.
-Beachten Sie, dass einige Websites möglicherweise nicht gescraped werden können, wenn sie z.B. mit Captchas oder Anti-Scraping-Mechanismen geschützt sind.
+1. Enter the website URL in the URL textbox.
+2. Select an HTML tag from the dropdown list.
+3. Click on the "Scrape" button to retrieve data from the website.
+4. The scraped data will be displayed in the output textbox.
+5. Click on the "Save CSV" button to save the data to a CSV file.
+6. Click on the "Save PDF" button to save the data to a PDF file.
+
+!!! Note: The URL must start with "http" or "https" to be considered valid. !!!
+
+Changes made to the original code:
+
+- Fixed error handling for invalid URLs / HTML tags
+- Minor style changes
+
+To run the program, you need to have Python and the following libraries installed:
+
+PyQt5
+requests
+BeautifulSoup4
+To install the required libraries, run the following command in your terminal:
+pip install PyQt5 requests beautifulsoup4
+
+To launch the program, run the following command in your terminal:
+python webthingy.py
+
+Author: Satisfraction 
+
+Lizenz:
+This program is licensed under the MIT License. See the LICENSE file for more information.

@@ -1,18 +1,176 @@
+import csv
+import sys
 import requests
 from bs4 import BeautifulSoup
-import csv
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton, QComboBox, QFileDialog
+from PyQt5.QtGui import QIcon, QFont, QTextDocument, QTextCursor
+from PyQt5.QtCore import Qt, QIODevice, QFile
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 
-url = "https://www.cnn.com"
-response = requests.get(url)
 
-soup = BeautifulSoup(response.text, "html.parser")
+class Webthingy(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-# Find all article headlines
-headlines = soup.find_all("h3", class_="cd__headline")
+        # Set window title, icon and background color
+        self.setWindowTitle('Web Scraper Tool')
+        self.setWindowIcon(QIcon('icon.png'))
+        self.setStyleSheet("background-color: #1c1c1c; color: #ffffff;")
 
-# Write headlines to CSV file
-with open("headlines.csv", "w", newline="") as csv_file:
-    writer = csv.writer(csv_file)
-    writer.writerow(["Headlines"])
-    for headline in headlines:
-        writer.writerow([headline.get_text()])
+        # Create widgets and set their properties
+        font = QFont('Roboto', 12)
+
+        self.url_label = QLabel('Enter website URL:')
+        self.url_label.setFont(font)
+
+        self.url_textbox = QLineEdit()
+        self.url_textbox.setFont(font)
+        self.url_textbox.setStyleSheet("background-color: #252525; color: #ffffff;")
+
+        self.tag_label = QLabel('Select HTML tag:')
+        self.tag_label.setFont(font)
+
+        self.tag_combobox = QComboBox()
+        self.tag_combobox.setFont(font)
+        self.tag_combobox.setStyleSheet("background-color: #252525; color: #ffffff;")
+        self.tag_combobox.addItems(['p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img'])
+
+        self.scrape_button = QPushButton('Scrape')
+        self.scrape_button.setFont(font)
+        self.scrape_button.setStyleSheet("background-color: #d35400; color: #ffffff;")
+        self.scrape_button.clicked.connect(self.scrape_website)
+
+        self.save_csv_button = QPushButton('Save CSV')
+        self.save_csv_button.setFont(font)
+        self.save_csv_button.setStyleSheet("background-color: #2980b9; color: #ffffff;")
+        self.save_csv_button.setEnabled(False)
+        self.save_csv_button.clicked.connect(self.save_to_csv)
+
+        self.save_pdf_button = QPushButton('Save PDF')
+        self.save_pdf_button.setFont(font)
+        self.save_pdf_button.setStyleSheet("background-color: #27ae60; color: #ffffff;")
+        self.save_pdf_button.setEnabled(False)
+        self.save_pdf_button.clicked.connect(self.save_to_pdf)
+
+        self.output_label = QLabel('Output:')
+        self.output_label.setFont(font)
+
+        self.output_textbox = QTextEdit()
+        self.output_textbox.setFont(font)
+        self.output_textbox.setStyleSheet("background-color: #252525; color: #ffffff;")
+        self.output_textbox.setReadOnly(True)
+
+        # Create layout and add widgets to it
+        layout = QVBoxLayout()
+
+        url_layout = QHBoxLayout()
+        url_layout.addWidget(self.url_label)
+        url_layout.addWidget(self.url_textbox)
+        layout.addLayout(url_layout)
+
+        tag_layout = QHBoxLayout()
+        tag_layout.addWidget(self.tag_label)
+        tag_layout.addWidget(self.tag_combobox)
+        layout.addLayout(tag_layout)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.scrape_button)
+        button_layout.addWidget(self.save_csv_button)
+        button_layout.addWidget(self.save_pdf_button)
+        layout.addLayout(button_layout)
+
+        layout.addWidget(self.output_label)
+        layout.addWidget(self.output_textbox)
+
+        main_widget = QWidget()
+        main_widget.setLayout(layout)
+        main_widget.setStyleSheet("padding: 20px;")
+        self.setCentralWidget(main_widget)
+
+        # Initialize data containers
+        self.csv_data = None
+        self.pdf_data = None
+
+    def scrape_website(self):
+        # Get website URL and selected HTML tag from the UI
+        url = self.url_textbox.text()
+        tag = self.tag_combobox.currentText()
+
+        # Check if website URL is valid
+        if not url.startswith('http'):
+            self.output_textbox.append('Error: Invalid website URL.')
+            return
+
+        try:
+            # Send GET request to website URL and get response object
+            response = requests.get(url)
+
+            # Create BeautifulSoup object and find all tags matching the selected HTML tag
+            soup = BeautifulSoup(response.text, 'html.parser')
+            tag_list = soup.find_all(tag)
+
+            # Create list of tag text
+            tag_text_list = [tag.text.strip() for tag in tag_list]
+
+            # Print tag text to output textbox
+            for tag_text in tag_text_list:
+                self.output_textbox.append(tag_text)
+
+            # Create CSV data
+            self.csv_data = [['URL', 'Tag', 'Text']]
+            for tag_text in tag_text_list:
+                self.csv_data.append([url, tag, tag_text])
+            self.save_csv_button.setEnabled(True)
+
+            # Create PDF data
+            self.pdf_data = '<br>'.join(tag_text_list)
+            self.save_pdf_button.setEnabled(True)
+
+        except requests.exceptions.RequestException as e:
+            # Handle request exception
+            self.output_textbox.append(f'Error: {e}')
+
+    def save_to_csv(self):
+        # Get file path to save CSV
+        filepath, _ = QFileDialog.getSaveFileName(self, 'Save CSV', '', 'CSV Files (*.csv)')
+
+        # Check if file path is valid
+        if not filepath:
+            return
+
+        # Open file for writing and write CSV data
+        with open(filepath, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(self.csv_data)
+
+        self.output_textbox.append(f'CSV saved to {filepath}.')
+
+    def save_to_pdf(self):
+        # Get file path to save PDF
+        filepath, _ = QFileDialog.getSaveFileName(self, 'Save PDF', '', 'PDF Files (*.pdf)')
+
+        # Check if file path is valid
+        if not filepath:
+            return
+
+        # Create PDF document and add data
+        document = QTextDocument()
+        document.setHtml(self.pdf_data)
+
+        # Create printer and print dialog
+        printer = QPrinter()
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(filepath)
+        dialog = QPrintDialog(printer)
+
+        # If dialog is accepted, print document to printer
+        if dialog.exec() == QPrintDialog.Accepted:
+            document.print_(printer)
+
+        self.output_textbox.append(f'PDF saved to {filepath}.')
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    gui = Webthingy()
+    gui.show()
+    sys.exit(app.exec_())

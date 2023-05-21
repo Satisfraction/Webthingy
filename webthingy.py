@@ -2,9 +2,10 @@ import csv
 import sys
 import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton, QComboBox, QFileDialog
-from PyQt5.QtGui import QIcon, QFont, QTextDocument, QTextCursor
-from PyQt5.QtCore import Qt, QIODevice, QFile
+from PyQt5.QtGui import QIcon, QFont, QTextDocument, QPixmap
+from PyQt5.QtCore import Qt, QIODevice, QFile, QUrl
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 
 
@@ -13,7 +14,7 @@ class Webthingy(QMainWindow):
         super().__init__()
 
         # Set window title, icon and background color
-        self.setWindowTitle('Web Scraper Tool')
+        self.setWindowTitle('Webthingy - the Web Scraper Tool')
         self.setWindowIcon(QIcon('icon.png'))
         self.setStyleSheet("background-color: #1c1c1c; color: #ffffff;")
 
@@ -91,6 +92,11 @@ class Webthingy(QMainWindow):
         self.csv_data = None
         self.pdf_data = None
 
+        # Initialize session object
+        self.session = requests.Session()
+
+
+
     def scrape_website(self):
         # Get website URL and selected HTML tag from the UI
         url = self.url_textbox.text()
@@ -103,28 +109,31 @@ class Webthingy(QMainWindow):
 
         try:
             # Send GET request to website URL and get response object
-            response = requests.get(url)
+            response = self.session.get(url)
 
             # Create BeautifulSoup object and find all tags matching the selected HTML tag
             soup = BeautifulSoup(response.text, 'html.parser')
             tag_list = soup.find_all(tag)
 
-            # Create list of tag text
-            tag_text_list = [tag.text.strip() for tag in tag_list]
+            # Use a thread pool to parallelize the scraping process
+            with ThreadPoolExecutor() as executor:
+                # Define a function to process each tag
+                def process_tag(tag):
+                    if tag.name == 'img':
+                        img_src = tag['src']
+                        self.output_textbox.append(img_src)
+                        return [url, tag.name, img_src]
+                    else:
+                        tag_text = tag.text.strip()
+                        self.output_textbox.append(tag_text)
+                        return [url, tag.name, tag_text]
 
-            # Print tag text to output textbox
-            for tag_text in tag_text_list:
-                self.output_textbox.append(tag_text)
-
-            # Create CSV data
-            self.csv_data = [['URL', 'Tag', 'Text']]
-            for tag_text in tag_text_list:
-                self.csv_data.append([url, tag, tag_text])
-            self.save_csv_button.setEnabled(True)
-
-            # Create PDF data
-            self.pdf_data = '<br>'.join(tag_text_list)
-            self.save_pdf_button.setEnabled(True)
+                # Process tags in parallel and collect the results
+                results = list(executor.map(process_tag, tag_list))
+                self.csv_data = [['URL', 'Tag', 'Text']] + results
+                self.save_csv_button.setEnabled(True)
+                self.pdf_data = '<br>'.join((f"{result[1]}: {result[2]}" for result in results))
+                self.save_pdf_button.setEnabled(True)
 
         except requests.exceptions.RequestException as e:
             # Handle request exception
